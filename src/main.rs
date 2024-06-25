@@ -5,27 +5,28 @@ impl<'de> Deserialize<'de> for CommandResult {
     where
         D: Deserializer<'de>,
     {
-        fn derived_impl<'de, D>(deserializer: D) -> Result<CommandResult, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-        {
-            <CommandResult>::deserialize(deserializer)
+        #[derive(Deserialize)]
+        struct CommandWrapper {
+            error: Option<String>,
+            events: Vec<String>,
         }
 
         #[derive(Deserialize)]
         struct DataWrapper {
-            data: CommandWrapper,
+            command: CommandWrapper,
         }
 
         #[derive(Deserialize)]
-        struct CommandWrapper {
-            #[serde(deserialize_with = "derived_impl")]
-            command: CommandResult,
+        struct RootWrapper {
+            data: DataWrapper,
         }
 
-        let wrapper = DataWrapper::deserialize(deserializer)?;
+        let root = RootWrapper::deserialize(deserializer)?;
 
-        Ok(wrapper.data.command)
+        Ok(CommandResult {
+            events: root.data.command.events,
+            error: root.data.command.error,
+        })
     }
 }
 
